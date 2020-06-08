@@ -1,0 +1,30 @@
+{
+    "name": "ratno/generate-enum",
+    "description": "Generate Enum in Models",
+    "keywords": [
+        "ratno",
+        "generate-enum"
+    ],
+    "homepage": "https://github.com/ratno/generate-enum",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Ratno Putro Sulistiyono",
+            "email": "ratno@knoqdown.com",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Ratno\\GenerateEnum\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ratno\\GenerateEnum\\GenerateEnumServiceProvider"
+            ]
+        }
+    }
+}

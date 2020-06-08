@@ -1,0 +1,1 @@
+# Generate Enumerasi pada Model

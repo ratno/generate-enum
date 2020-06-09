@@ -13,23 +13,59 @@ class GenerateEnum
         $this->tables = config("generate-enum");
     }
 
+    protected function getClassname($table_name)
+    {
+        return \Illuminate\Support\Str::studly($table_name);
+    }
+
+    protected function getClassnameWithNamespace($table_name)
+    {
+        return "\\App\\Models\\" . $this->getClassname($table_name);
+    }
+
+    protected function getClassFilePath($table_name)
+    {
+        return app_path("/Models/".$this->getClassname($table_name).".php");
+    }
+
+    protected function getReferenceNameFromItemData($item_data,$upper = false)
+    {
+        $referenceName = trim(strtolower(str_replace(["-"," "],"_",$item_data)));
+        return ($upper)?strtoupper($referenceName):$referenceName;
+    }
+
+    protected function rewriteClass($file_path,array $search_replace_data=[])
+    {
+        if(count($search_replace_data)){
+            $content = file_get_contents($file_path);
+            foreach($search_replace_data as $key_search => $replace_data) {
+                list($glue,$data) = $replace_data;
+
+                $data[] = $key_search; // di-include-kan di akhir data supaya tetap tergenerate key_search sehingga bisa dipake buat replace dikemudian hari
+
+                $replace_string = implode($glue,$data);
+                $content = str_replace($key_search,$replace_string,$content);
+            }
+            file_put_contents($file_path,$content);
+        }
+    }
+
     public function proses()
     {
         foreach ($this->tables as $table_name => $column_ref) {
-            $classname = \Illuminate\Support\Str::studly($table_name);
-            $classname_full = "\\App\\Models\\$classname";
-            $model_file_path = app_path("/Models/$classname.php");
-
             if($table_name == "settings") {
-                $this->prosesTabelSettings($classname_full,$column_ref,$model_file_path);
+                $this->prosesTabelSettings($table_name,$column_ref);
             } else {
-                $this->prosesTabel($classname_full,$column_ref,$model_file_path);
+                $this->prosesTabel($table_name,$column_ref);
             }
         }
     }
 
-    protected function prosesTabelSettings($classname_full,$column_ref,$model_file_path)
+    protected function prosesTabelSettings($table_name,$column_ref)
     {
+        $classname_full = $this->getClassnameWithNamespace($table_name);
+        $model_file_path = $this->getClassFilePath($table_name);
+
         $available_methods = $classname_full::AVAILABLE_SETTINGS;
         $methods_comment = [];
         $methods_available = [];
@@ -37,7 +73,7 @@ class GenerateEnum
         $data = $classname_full::all();
         if(count($data)) {
             foreach ($data as $model) {
-                $reference_name = trim(strtolower(str_replace(["-"," "],"_",$model->$column_ref)));
+                $reference_name = $this->getReferenceNameFromItemData($model->$column_ref);
                 if(!in_array($reference_name,$available_methods)) {
                     $blnSave = true;
                     $methods_available[] = "'$reference_name',";
@@ -46,31 +82,31 @@ class GenerateEnum
             }
 
             if($blnSave) {
-                $search_method_comment = "* **************";
-                $search_array_content = "/* -available-settings- */";
-                $methods_comment[] = $search_method_comment;
-                $methods_available[] = $search_array_content;
-
-                $content = file_get_contents($model_file_path);
-                // pertama tambahkan @method
-                $content = str_replace($search_method_comment,implode("\n ",$methods_comment),$content);
-                // kedua tambahkan method-available
-                $content = str_replace($search_array_content,implode("\n        ",$methods_available),$content);
-                file_put_contents($model_file_path,$content);
+                $this->rewriteClass($model_file_path,[
+                    "* **************" => [
+                        "glue" => "\n ",
+                        "data" => $methods_comment
+                    ],
+                    "/* -available-settings- */" => [
+                        "glue" => "\n        ",
+                        "data" => $methods_available
+                    ],
+                ]);
             }
         }
     }
 
-    protected function prosesTabel($classname_full,$column_ref,$model_file_path)
+    protected function prosesTabel($table_name,$column_ref)
     {
+        $classname_full = $this->getClassnameWithNamespace($table_name);
+        $model_file_path = $this->getClassFilePath($table_name);
         $reflection = new ReflectionClass($classname_full);
         $constants = [];
         $blnSave = false;
         $data = $classname_full::all();
         if(count($data)) {
             foreach ($data as $model) {
-                $reference_name = trim(strtolower(str_replace(["-"," "],"_",$model->$column_ref)));
-                $reference_name = strtoupper($reference_name);
+                $reference_name = $this->getReferenceNameFromItemData($model->$column_ref,true);
                 if(!array_key_exists($reference_name,$reflection->getConstants())){
                     $blnSave = true;
                     $constants[] = "const " . strtoupper($reference_name) ." = ".$model->id .";";
@@ -78,12 +114,12 @@ class GenerateEnum
             }
 
             if($blnSave) {
-                $search_constant_anchor = "/* -constant-definition- */";
-                $constants[] = $search_constant_anchor;
-
-                $content = file_get_contents($model_file_path);
-                $content = str_replace($search_constant_anchor,implode("\n    ",$constants),$content);
-                file_put_contents($model_file_path,$content);
+                $this->rewriteClass($model_file_path,[
+                    "/* -constant-definition- */" => [
+                        "glue" => "\n    ",
+                        "data" => $constants
+                    ]
+                ]);
             }
         }
     }

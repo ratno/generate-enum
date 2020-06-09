@@ -110,6 +110,9 @@ class GenerateEnum
                 if(!array_key_exists($reference_name,$reflection->getConstants())){
                     $blnSave = true;
                     $constants[] = "const " . strtoupper($reference_name) ." = ".$model->id .";";
+                    if($table_name == "roles") {
+                        $constants[] = "const " . strtoupper($reference_name) ."_STRING = '".$model->$column_ref ."';";
+                    }
                 }
             }
 

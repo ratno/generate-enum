@@ -39,11 +39,9 @@ class GenerateEnum
         if(count($search_replace_data)){
             $content = file_get_contents($file_path);
             foreach($search_replace_data as $key_search => $replace_data) {
-                list($glue,$data) = $replace_data;
+                $replace_data['data'][] = $key_search; // di-include-kan di akhir data supaya tetap tergenerate key_search sehingga bisa dipake buat replace dikemudian hari
 
-                $data[] = $key_search; // di-include-kan di akhir data supaya tetap tergenerate key_search sehingga bisa dipake buat replace dikemudian hari
-
-                $replace_string = implode($glue,$data);
+                $replace_string = implode($replace_data['glue'],$replace_data['data']);
                 $content = str_replace($key_search,$replace_string,$content);
             }
             file_put_contents($file_path,$content);

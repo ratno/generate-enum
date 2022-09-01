@@ -30,7 +30,7 @@ class GenerateEnum
 
     protected function getReferenceNameFromItemData($item_data,$upper = false)
     {
-        $referenceName = trim(strtolower(str_replace(["-"," "],"_",$item_data)));
+        $referenceName = trim(strtolower(str_replace(["-"," ","/",";",",",".","(",")","[","]","|","{","}"],"_",$item_data)));
         return ($upper)?strtoupper($referenceName):$referenceName;
     }
 
